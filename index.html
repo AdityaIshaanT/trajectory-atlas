@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flight Visualizations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c12;
+      --surface:   #0d1520;
+      --border:    #1a2d45;
+      --accent:    #00c8ff;
+      --accent2:   #0057ff;
+      --text:      #c8dff0;
+      --muted:     #4a6580;
+      --card-bg:   #0a1826;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-weight: 300;
+    }
+
+    /* ── grid background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: .35;
+      pointer-events: none;
+    }
+
+    /* ── radial glow ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 70% 55% at 50% 0%, rgba(0,90,200,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── layout ── */
+    .page-wrap {
+      position: relative; z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 64px 28px 100px;
+    }
+
+    /* ── header ── */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 64px;
+      animation: fadeUp .7s ease both;
+    }
+
+    .eyebrow {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .72rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      opacity: .85;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      font-weight: 600;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      color: #e8f4ff;
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.65;
+    }
+
+    /* ── divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 40px;
+      animation: fadeUp .7s .15s ease both;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent2), transparent);
+      opacity: .4;
+    }
+
+    .divider-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .7rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── card grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    /* ── card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+      animation: fadeUp .6s ease both;
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,200,255,.04), transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .card:hover {
+      border-color: rgba(0,200,255,.45);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(0,200,255,.12);
+    }
+
+    .card:hover::before { opacity: 1; }
+
+    /* thumbnail / preview area */
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* radar-ring decoration inside thumb */
+    .card-thumb::after {
+      content: '';
+      position: absolute;
+      width: 180%;
+      height: 180%;
+      border-radius: 50%;
+      border: 1px solid rgba(0,200,255,.08);
+      box-shadow: 0 0 0 30px rgba(0,200,255,.04), 0 0 0 60px rgba(0,200,255,.02);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .card-thumb svg {
+      width: 64px; height: 64px;
+      opacity: .55;
+      transition: opacity .25s, transform .4s;
+      z-index: 1;
+    }
+
+    .card:hover .card-thumb svg {
+      opacity: .9;
+      transform: translateY(-4px) rotate(-6deg);
+    }
+
+    /* tag badge */
+    .card-tag {
+      position: absolute;
+      top: 12px; left: 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .62rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      background: rgba(0,200,255,.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,200,255,.25);
+      padding: 2px 8px;
+      border-radius: 3px;
+      z-index: 2;
+    }
+
+    /* card body */
+    .card-body {
+      padding: 20px 22px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #ddeeff;
+      letter-spacing: -.01em;
+    }
+
+    .card-desc {
+      font-size: .88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .card-footer {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      letter-spacing: .06em;
+    }
+
+    .arrow {
+      font-size: .85rem;
+      color: var(--accent);
+      transition: transform .2s;
+    }
+
+    .card:hover .arrow { transform: translateX(4px); }
+
+    /* ── stagger delays ── */
+    .card:nth-child(1) { animation-delay: .2s; }
+    .card:nth-child(2) { animation-delay: .32s; }
+    .card:nth-child(3) { animation-delay: .44s; }
+    .card:nth-child(4) { animation-delay: .56s; }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .68rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      animation: fadeUp .5s .5s ease both;
+    }
+
+    /* ── animation ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+
+    <header>
+      <p class="eyebrow">Flight Data Visualizations</p>
+      <h1>Trajectory <span>Atlas</span></h1>
+      <p class="subtitle">
+        Interactive 3D visualizations of aircraft flight paths — rendered from
+        recorded telemetry and flight-data sources.
+      </p>
+    </header>
+
+    <div class="divider">
+      <div class="divider-line"></div>
+      <span class="divider-label">Visualizations</span>
+      <div class="divider-line" style="background:linear-gradient(90deg,transparent,var(--accent2));"></div>
+    </div>
+
+    <div class="grid">
+
+      <!-- ── card 1 — A320 3D Trajectory ── -->
+      <a class="card" href="trajectory_3d_A320.html">
+        <div class="card-thumb">
+          <span class="card-tag">3D · Plotly</span>
+          <!-- plane icon -->
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 36l10-4 6 10 6-2-4-12 14-5 4 8 5-2-6-10 6-3c3-1.5 6 .5 5 4l-4 14-4 2-2-4-14 5 2 6-8 3-4-6-6-1-2-4 2-1z"
+                  fill="none" stroke="#00c8ff" stroke-width="1.5" stroke-linejoin="round"/>
+            <circle cx="32" cy="32" r="28" stroke="rgba(0,200,255,0.15)" stroke-width="1" stroke-dasharray="4 5"/>
+          </svg>
+        </div>
+        <div class="card-body">
+          <p class="card-title">A320 — 3D Flight Trajectory</p>
+          <p class="card-desc">
+            Full-flight 3D path reconstruction of an Airbus A320 with altitude,
+            speed, and heading overlaid on an interactive globe.
+          </p>
+          <div class="card-footer">
+            <span class="card-meta">Airbus A320 · Plotly v3</span>
+            <span class="arrow">→</span>
+          </div>
+        </div>
+      </a>
+
+      <!--
+        ── To add more visualizations, duplicate the block above.
+           Change the href, title, description, and card-meta fields.
+      -->
+
+    </div>
+
+    <footer>
+      <span>TRAJECTORY ATLAS</span>
+      <span>Built with Plotly · Hosted on GitHub Pages</span>
+    </footer>
+
+  </div>
+</body>
+</html>
